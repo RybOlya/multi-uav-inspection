@@ -1,0 +1,119 @@
+% =====================================================================
+% Bridge Swarm IoT — coursework preamble
+% Compile with XeLaTeX (recommended) or LuaLaTeX. Fallback to pdfLaTeX +
+% babel-ukrainian works but requires texlive-lang-cyrillic.
+% =====================================================================
+
+% Works with pdfLaTeX, LuaLaTeX and XeLaTeX (T2A + babel fallback).
+% For full Unicode font rendering install texlive-lang-cyrillic.
+\usepackage[T2A]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[english,ukrainian]{babel}
+\usepackage{cmap}
+
+% Page geometry
+\usepackage[a4paper, top=2cm, bottom=2cm, left=2.5cm, right=1.5cm]{geometry}
+\usepackage{setspace}
+\onehalfspacing
+
+% Math
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+
+% Graphics, tables, lists
+\usepackage{graphicx}
+\graphicspath{{figures/}}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{multirow}
+\usepackage{enumitem}
+\usepackage{caption}
+\captionsetup{font=small, labelfont=bf, justification=centering}
+
+% Color and code listings
+\usepackage{xcolor}
+\definecolor{codebg}{HTML}{F5F5F5}
+\definecolor{codekw}{HTML}{0033B3}
+\definecolor{codestr}{HTML}{0B7C2A}
+\definecolor{codecom}{HTML}{8E908C}
+\definecolor{codenum}{HTML}{555555}
+
+\usepackage{listings}
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  backgroundcolor=\color{codebg},
+  keywordstyle=\color{codekw}\bfseries,
+  stringstyle=\color{codestr},
+  commentstyle=\color{codecom}\itshape,
+  numbers=left,
+  numberstyle=\tiny\color{codenum},
+  numbersep=8pt,
+  frame=single,
+  framesep=4pt,
+  rulecolor=\color{black!15},
+  breaklines=true,
+  breakatwhitespace=true,
+  showstringspaces=false,
+  tabsize=2,
+  captionpos=b,
+  xleftmargin=10pt,
+  xrightmargin=4pt,
+  literate={і}{{\char"456}}1 {І}{{\char"406}}1
+           {ї}{{\char"457}}1 {Ї}{{\char"407}}1
+           {є}{{\char"454}}1 {Є}{{\char"404}}1
+           {ґ}{{\char"491}}1 {Ґ}{{\char"490}}1
+}
+
+\lstdefinelanguage{yaml}{
+  morekeywords={true,false,null,yes,no},
+  morecomment=[l]{\#},
+  morestring=[b]",
+  morestring=[b]',
+  basicstyle=\ttfamily\footnotesize,
+  keywordstyle=\color{codekw},
+}
+
+\lstdefinelanguage{toml}{
+  morecomment=[l]{\#},
+  morestring=[b]",
+  morestring=[b]',
+  basicstyle=\ttfamily\footnotesize,
+}
+
+% Hyperlinks
+\usepackage[
+  colorlinks=true,
+  linkcolor=blue!50!black,
+  citecolor=teal!60!black,
+  urlcolor=blue!60!black,
+  pdfborder={0 0 0}
+]{hyperref}
+\usepackage{url}
+
+% Headings
+\usepackage{titlesec}
+\titleformat{\section}{\Large\bfseries}{\thesection}{0.7em}{}
+\titleformat{\subsection}{\large\bfseries}{\thesubsection}{0.7em}{}
+\titleformat{\subsubsection}{\normalsize\bfseries}{\thesubsubsection}{0.7em}{}
+\titlespacing*{\section}{0pt}{1.4em}{0.7em}
+\titlespacing*{\subsection}{0pt}{1.0em}{0.5em}
+\titlespacing*{\subsubsection}{0pt}{0.8em}{0.4em}
+
+% Headers / footers
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyfoot[C]{\thepage}
+\fancyhead[L]{\small Курсова робота: «Інтернет речей на транспорті»}
+\fancyhead[R]{\small Facility Inspection Swarm}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% Custom commands
+\newcommand{\projname}{Facility Inspection Swarm}
+\newcommand{\warehouseslamurl}{\url{https://github.com/RybOlya/bridge-swarm-iot}}
+
+% Avoid orphan/widow lines
+\widowpenalty=10000
+\clubpenalty=10000

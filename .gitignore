@@ -1,0 +1,60 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project
+.env
+inspection_images_*/
+data/
+logs/
+*.log
+
+# Docker volumes
+volumes/
+mosquitto/data/
+mosquitto/log/
+influxdb/data/
+grafana/data/
+minio/data/
+
+# LaTeX
+docs/coursework/*.aux
+docs/coursework/*.log
+docs/coursework/*.out
+docs/coursework/*.toc
+docs/coursework/*.lof
+docs/coursework/*.lot
+docs/coursework/*.fls
+docs/coursework/*.fdb_latexmk
+docs/coursework/*.synctex.gz
+docs/coursework/*.bbl
+docs/coursework/*.blg
+docs/coursework/*.bcf
+docs/coursework/*.run.xml
+docs/coursework/sections/*.aux
+docs/coursework/_minted-*/
+docs/coursework/main.pdf

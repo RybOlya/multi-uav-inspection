@@ -1,0 +1,410 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {"type": "grafana", "uid": "-- Grafana --"},
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "Live state of the operator-driven UAV swarm in Isaac Sim. Telemetry produced by swarm.controller.CommandedNonlinearController, ingested by Telegraf from MQTT, stored in InfluxDB v2.",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+      "description": "Latest reported mode per drone (idle / takeoff / goto / scan / hover / land).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "mappings": [
+            {"options": {"idle":     {"color": "blue",   "index": 0, "text": "idle"}},     "type": "value"},
+            {"options": {"takeoff":  {"color": "purple", "index": 1, "text": "takeoff"}},  "type": "value"},
+            {"options": {"goto":     {"color": "green",  "index": 2, "text": "goto"}},     "type": "value"},
+            {"options": {"scan":     {"color": "orange", "index": 3, "text": "scan"}},     "type": "value"},
+            {"options": {"hover":    {"color": "yellow", "index": 4, "text": "hover"}},    "type": "value"},
+            {"options": {"land":     {"color": "red",    "index": 5, "text": "land"}},     "type": "value"}
+          ],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 4, "w": 24, "x": 0, "y": 0},
+      "id": 1,
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "justifyMode": "center",
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "textMode": "value_and_name"
+      },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+          "query": "from(bucket: \"telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"drone_state\")\n  |> filter(fn: (r) => r._field == \"x\")\n  |> last()\n  |> keep(columns: [\"drone_id\", \"mode\", \"_value\"])\n  |> map(fn: (r) => ({ _value: r.mode, drone_id: r.drone_id }))\n  |> group(columns: [\"drone_id\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "Drone modes (live)",
+      "type": "stat"
+    },
+    {
+      "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+      "description": "Position along world +X.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "x [m]",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "gradientMode": "none",
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "lengthm"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+      "id": 2,
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "showLegend": true, "calcs": ["lastNotNull"]},
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+          "query": "from(bucket: \"telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"drone_state\" and r._field == \"x\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\", \"drone_id\"])\n  |> group(columns: [\"drone_id\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "Position X",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+      "description": "Position along world +Y.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "y [m]",
+            "axisPlacement": "auto",
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "unit": "lengthm"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4},
+      "id": 3,
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "showLegend": true, "calcs": ["lastNotNull"]},
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+          "query": "from(bucket: \"telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"drone_state\" and r._field == \"y\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\", \"drone_id\"])\n  |> group(columns: [\"drone_id\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "Position Y",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+      "description": "Altitude above floor (Z = 0).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "z [m]",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "pointSize": 4,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "min": 0,
+          "unit": "lengthm"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12},
+      "id": 4,
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "showLegend": true, "calcs": ["lastNotNull"]},
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+          "query": "from(bucket: \"telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"drone_state\" and r._field == \"z\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> keep(columns: [\"_time\", \"_value\", \"drone_id\"])\n  |> group(columns: [\"drone_id\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "Altitude (Z)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+      "description": "Linear speed magnitude sqrt(vx^2 + vy^2 + vz^2). Configured cruise speed is SIM_CRUISE_SPEED_MPS.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "speed [m/s]",
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "never"
+          },
+          "min": 0,
+          "unit": "velms"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12},
+      "id": 5,
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "showLegend": true, "calcs": ["lastNotNull", "max"]},
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+          "query": "import \"math\"\n\nfrom(bucket: \"telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"drone_state\")\n  |> filter(fn: (r) => r._field == \"vx\" or r._field == \"vy\" or r._field == \"vz\")\n  |> pivot(rowKey:[\"_time\",\"drone_id\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({ _time: r._time, drone_id: r.drone_id, _value: math.sqrt(x: r.vx*r.vx + r.vy*r.vy + r.vz*r.vz) }))\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> group(columns: [\"drone_id\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "Speed",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+      "description": "Active trajectory progress: elapsed_s / total_s for each drone (latest sample).",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "max": 1,
+          "min": 0,
+          "thresholds": {"mode": "absolute", "steps": [
+            {"color": "blue", "value": null},
+            {"color": "green", "value": 0.5},
+            {"color": "orange", "value": 0.95}
+          ]},
+          "unit": "percentunit"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 7, "w": 12, "x": 0, "y": 20},
+      "id": 6,
+      "options": {
+        "displayMode": "gradient",
+        "minVizHeight": 10,
+        "minVizWidth": 0,
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showUnfilled": true
+      },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+          "query": "from(bucket: \"telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"drone_state\")\n  |> filter(fn: (r) => r._field == \"elapsed_s\" or r._field == \"total_s\")\n  |> last()\n  |> pivot(rowKey:[\"drone_id\"], columnKey: [\"_field\"], valueColumn: \"_value\")\n  |> map(fn: (r) => ({ drone_id: r.drone_id, _value: if r.total_s > 0.0 then (if r.elapsed_s / r.total_s > 1.0 then 1.0 else r.elapsed_s / r.total_s) else 0.0 }))",
+          "refId": "A"
+        }
+      ],
+      "title": "Trajectory progress",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+      "description": "Lifecycle and command-acknowledgement events from swarm/events/+.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "filterable": true,
+            "inspect": false
+          },
+          "mappings": [],
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 7, "w": 12, "x": 12, "y": 20},
+      "id": 7,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+        "showHeader": true,
+        "sortBy": [{"desc": true, "displayName": "Time"}]
+      },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+          "query": "from(bucket: \"telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"drone_event\")\n  |> filter(fn: (r) => r._field == \"seq\" or r._field == \"reason\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 50)\n  |> keep(columns: [\"_time\", \"drone_id\", \"topic\", \"cmd\", \"_field\", \"_value\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "Recent events",
+      "type": "table"
+    },
+    {
+      "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+      "description": "Remaining battery per drone (100 % at spawn, drains while flying). Low battery warns at 30 %, critical at 15 %.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "max": 100,
+          "min": 0,
+          "thresholds": {"mode": "absolute", "steps": [
+            {"color": "red",    "value": null},
+            {"color": "orange", "value": 15},
+            {"color": "yellow", "value": 30},
+            {"color": "green",  "value": 60}
+          ]},
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 5, "w": 12, "x": 0, "y": 27},
+      "id": 8,
+      "options": {
+        "displayMode": "lcd",
+        "orientation": "horizontal",
+        "reduceOptions": {"calcs": ["lastNotNull"], "fields": "", "values": false},
+        "showUnfilled": true
+      },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+          "query": "from(bucket: \"telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"drone_state\" and r._field == \"battery_pct\")\n  |> last()\n  |> group(columns: [\"drone_id\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "Battery %",
+      "type": "bargauge"
+    },
+    {
+      "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+      "description": "Scan coverage progress per drone: 0 % at scan start, 100 % when Boustrophedon sweep completes.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "palette-classic"},
+          "custom": {
+            "axisLabel": "coverage [%]",
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "never",
+            "spanNulls": true
+          },
+          "max": 100,
+          "min": 0,
+          "unit": "percent"
+        },
+        "overrides": []
+      },
+      "gridPos": {"h": 5, "w": 12, "x": 12, "y": 27},
+      "id": 9,
+      "options": {
+        "legend": {"displayMode": "table", "placement": "right", "showLegend": true, "calcs": ["lastNotNull"]},
+        "tooltip": {"mode": "multi", "sort": "none"}
+      },
+      "targets": [
+        {
+          "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+          "query": "from(bucket: \"telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"drone_state\" and r._field == \"coverage_pct\")\n  |> aggregateWindow(every: v.windowPeriod, fn: mean, createEmpty: false)\n  |> group(columns: [\"drone_id\"])",
+          "refId": "A"
+        }
+      ],
+      "title": "Scan coverage %",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+      "description": "Inspection and orbit events: command_accepted where cmd is inspect_poi or orbit.",
+      "fieldConfig": {
+        "defaults": {
+          "color": {"mode": "thresholds"},
+          "custom": {
+            "align": "auto",
+            "cellOptions": {"type": "auto"},
+            "filterable": true,
+            "inspect": false
+          },
+          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}]}
+        },
+        "overrides": [
+          {"matcher": {"id": "byName", "options": "cmd"},    "properties": [{"id": "custom.width", "value": 120}]},
+          {"matcher": {"id": "byName", "options": "drone_id"}, "properties": [{"id": "custom.width", "value": 100}]}
+        ]
+      },
+      "gridPos": {"h": 7, "w": 24, "x": 0, "y": 32},
+      "id": 10,
+      "options": {
+        "cellHeight": "sm",
+        "footer": {"countRows": false, "fields": "", "reducer": ["sum"], "show": false},
+        "showHeader": true,
+        "sortBy": [{"desc": true, "displayName": "Time"}]
+      },
+      "pluginVersion": "10.4.2",
+      "targets": [
+        {
+          "datasource": {"type": "influxdb", "uid": "SwarmInfluxDB"},
+          "query": "from(bucket: \"telemetry\")\n  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n  |> filter(fn: (r) => r._measurement == \"drone_event\" and r._field == \"cmd\")\n  |> filter(fn: (r) => r._value == \"inspect_poi\" or r._value == \"orbit\")\n  |> sort(columns: [\"_time\"], desc: true)\n  |> limit(n: 50)\n  |> keep(columns: [\"_time\", \"drone_id\", \"_value\"])\n  |> rename(columns: {\"_value\": \"cmd\"})",
+          "refId": "A"
+        }
+      ],
+      "title": "Inspection events (inspect_poi / orbit)",
+      "type": "table"
+    }
+  ],
+  "refresh": "1s",
+  "schemaVersion": 39,
+  "tags": ["swarm", "uav", "iot"],
+  "templating": {"list": []},
+  "time": {"from": "now-5m", "to": "now"},
+  "timepicker": {"refresh_intervals": ["1s", "2s", "5s", "10s", "30s", "1m"]},
+  "timezone": "browser",
+  "title": "Swarm Operator Dashboard",
+  "uid": "swarm-operator",
+  "version": 1,
+  "weekStart": ""
+}
