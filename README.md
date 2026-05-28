@@ -12,11 +12,11 @@ Built on [NVIDIA Isaac Sim](https://docs.isaacsim.omniverse.nvidia.com/) + [Pega
 
 ### Flight — Isaac Sim
 
-<video src="https://github.com/RybOlya/multi-uav-inspection/raw/master/docs/flight.webm" controls width="100%"></video>
+![flight demo](docs/flight.gif)
 
 ### Telemetry — Grafana live dashboard
 
-<video src="https://github.com/RybOlya/multi-uav-inspection/raw/master/docs/grafana.webm" controls width="100%"></video>
+![grafana demo](docs/grafana.gif)
 
 ---
 
