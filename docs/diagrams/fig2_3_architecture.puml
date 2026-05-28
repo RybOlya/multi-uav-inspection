@@ -1,0 +1,74 @@
+@startuml fig2_3_architecture
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam ArrowColor #444444
+skinparam componentBorderColor #555555
+skinparam packageBorderColor #888888
+skinparam packageBackgroundColor #F8F8F8
+skinparam componentBackgroundColor #EEF4FF
+
+title Архітектура системи рою БПЛА
+
+package "Рівень оператора" {
+  [missions/relay_demo.py\n(RelayMission)] as MISSION
+  [swarm/operator.py\n(CLI)] as CLI
+}
+
+package "Рівень дронів" {
+  package "Isaac Sim + Pegasus" {
+    [CommandedNonlinearController\n(swarm/controller.py)] as CTRL
+    [TrajectoryFollower\n(swarm/trajectory.py)] as TRAJ
+    [Pegasus NonlinearController\nSE(3) geometric ctrl] as PEGA
+    [DroneStateTracker\n(swarm/relay.py)] as TRACKER
+  }
+  package "Headless (mock_swarm)" {
+    [MockSwarm\n(swarm/mock_swarm.py)] as MOCK
+  }
+}
+
+package "Транспортний рівень" {
+  [Eclipse Mosquitto 2.x\nMQTT Broker :1883] as MQTT
+}
+
+package "Хмарна аналітика" {
+  [Telegraf\nMQTT Consumer] as TELEGRAF
+  [InfluxDB v2\nbucket: telemetry] as INFLUX
+}
+
+package "Рівень візуалізації" {
+  [Grafana\nlocalhost:3000] as GRAFANA
+}
+
+MISSION --> MQTT : swarm/cmd/{id}\nJSON, QoS 1
+CLI --> MQTT : swarm/cmd/{id}\nJSON, QoS 1
+
+MQTT --> CTRL : команди
+CTRL --> TRAJ : advance(dt)
+TRAJ --> PEGA : p_ref, v_ref, a_ref
+MQTT --> MOCK : команди
+
+CTRL --> MQTT : swarm/state/{id}\nQoS 0, 5 Hz
+MOCK --> MQTT : swarm/state/{id}\nQoS 0
+CTRL --> MQTT : swarm/telemetry/{id}\nLine Protocol, QoS 0
+MOCK --> MQTT : swarm/telemetry/{id}
+
+MQTT --> TRACKER : swarm/state/{id}
+TRACKER --> MISSION : snapshot() → WorldPose
+
+MQTT --> TELEGRAF : swarm/telemetry/+
+TELEGRAF --> INFLUX : write Line Protocol
+INFLUX --> GRAFANA : Flux query
+
+note right of TRACKER
+  Thread-safe читання
+  координат (X, Y, Z)
+  та battery_pct
+end note
+
+note bottom of MQTT
+  QoS 1 — команди та події
+  QoS 0 — телеметрія
+end note
+
+@enduml

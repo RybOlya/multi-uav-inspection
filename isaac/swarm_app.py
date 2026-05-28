@@ -164,9 +164,10 @@ def _spawn_positions(num_drones: int) -> list[list[float]]:
     """
     # (x, y, z) — aisle centre-line, near end of warehouse, just above floor.
     # These X values must match _CX_* constants in swarm/facility.py.
+    # Spawn outside the aisle (Y=5.5); aisle entry is at Y=8.25
     _AISLE_ENTRIES = [
-        [-3.25, 5.5, 0.1],   # uav-01 — left aisle
-        [-3.25, 3.5, 0.1],   # uav-02 — 2 m left of uav-01
+        [-3.25, 5.5, 0.1],   # uav-01 — left aisle centre-line
+        [-5.25, 5.5, 0.1],   # uav-02 — 2 m to the LEFT of uav-01
         [ 3.25, 5.5, 0.1],   # uav-03 — right aisle
     ]
     out: list[list[float]] = []

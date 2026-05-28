@@ -1,0 +1,83 @@
+@startuml fig2_1_mission_sequence
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam sequenceArrowColor #333333
+skinparam sequenceLifeLineBorderColor #555555
+skinparam sequenceParticipantBackgroundColor #EEF4FF
+skinparam sequenceParticipantBorderColor #555555
+skinparam noteBorderColor #AAAAAA
+skinparam noteBackgroundColor #FFFDE7
+skinparam sequenceGroupBackgroundColor #F0F8FF
+skinparam sequenceGroupBorderColor #4472C4
+
+title Послідовність естафетної місії
+
+actor "Оператор\n(relay_demo.py)" as OP
+participant "uav-01\n(primary)" as A
+participant "MQTT Broker\n(Mosquitto)" as MQTT
+participant "DroneState\nTracker" as TRACK
+participant "uav-02\n(relay)" as B
+participant "Grafana\n(dashboard)" as G
+
+== Фаза 1: uav-01 сканує ==
+
+OP -> MQTT : cmd: takeoff (altitude=3.0 м)
+MQTT -> A : takeoff
+A -> MQTT : state: {mode: takeoff, z: 0→3.0}
+MQTT -> G : telemetry (battery=100%)
+
+OP -> MQTT : cmd: goto (X=−3.25, Y=8.25, Z=3.0)
+MQTT -> A : goto → aisle entry
+A -> MQTT : state: {mode: goto, y: 5.5→8.25}
+
+OP -> MQTT : cmd: goto (X=−3.25, Y=15.5, Z=3.0)
+MQTT -> A : goto → far end (scan start)
+
+note over TRACK : Підписаний на\nswarm/state/uav-01\n(polling 0.5 с)
+
+loop кожні 0.5 с — моніторинг батареї
+  TRACK -> MQTT : subscribe state
+  MQTT -> TRACK : {x, y, z, battery_pct, mode}
+  TRACK -> OP : snapshot() → WorldPose
+  A -> MQTT : telemetry → Grafana
+  MQTT -> G : battery_pct, x, y, z
+end
+
+== Передача місії (battery < 50%) ==
+
+OP -> MQTT : cmd: stop (uav-01)
+MQTT -> A : hover in place
+note over A : стабілізація 1 с
+
+TRACK -> MQTT : snapshot()
+MQTT -> TRACK : handoff = {X=−3.25, Y=+10.58, Z=3.0}
+note over OP #FFE6CC : *** HANDOFF TRIGGERED ***\nHandoff world pose:\nX=−3.25 m  Y=+10.58 m  Z=3.0 m
+
+== Фаза 2: uav-01 повертається, uav-02 перехоплює ==
+
+OP -> MQTT : cmd: goto (X=−3.25, Y=5.5, Z=3.0)  ← uav-01 return
+MQTT -> A : goto spawn
+OP -> MQTT : cmd: takeoff (uav-02)
+MQTT -> B : takeoff
+
+note over A, B : Паралельно:\nuav-01 повертається\nuav-02 злітає
+
+OP -> MQTT : cmd: land (uav-01)
+MQTT -> A : land at spawn
+
+OP -> MQTT : cmd: goto handoff pose (uav-02)
+MQTT -> B : goto X=−3.25, Y=+10.58, Z=3.0
+B -> MQTT : state: {mode: goto}
+
+OP -> MQTT : cmd: goto far end (uav-02)
+MQTT -> B : goto X=−3.25, Y=15.5, Z=3.0
+B -> MQTT : telemetry → Grafana
+MQTT -> G : battery_pct (uav-02)
+
+OP -> MQTT : cmd: land (uav-02)
+MQTT -> B : land
+
+note over OP #D5E8D4 : Relay mission complete.\nuav-01: Y=8.25 → Y=10.58 м\nuav-02: Y=10.58 → Y=15.5 м
+
+@enduml

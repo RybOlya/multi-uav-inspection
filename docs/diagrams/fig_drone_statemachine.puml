@@ -1,0 +1,37 @@
+@startuml fig_drone_statemachine
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 13
+skinparam stateBorderColor #555555
+skinparam stateBackgroundColor #EEF4FF
+skinparam ArrowColor #333333
+
+title Машина станів дрона
+
+[*] --> idle
+
+idle --> takeoff : takeoff(altitude)
+takeoff --> hover : досягнуто висоту
+
+hover --> goto : goto(x, y, z)
+goto --> hover : досягнуто ціль
+
+hover --> land : land()
+land --> idle : висота = 0
+
+hover --> hover : stop()\n(вже у hover)
+goto --> hover : stop()\n(перервати, зависнути)
+takeoff --> hover : stop()
+
+note right of goto
+  Квінтична траєкторія
+  p(t) = c₀+c₁t+...+c₅t⁵
+  [Lynch & Park 2017]
+end note
+
+note right of hover
+  Публікує state кожні 0.2 с:
+  {x, y, z, battery_pct, mode}
+end note
+
+@enduml

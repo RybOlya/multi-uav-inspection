@@ -66,10 +66,11 @@ class MockSwarm:
         self._running = False
         self._drones: dict[str, DroneSim] = {}
 
-        # uav-01: left aisle  uav-02: 2 m to the LEFT of uav-01, same near end
+        # Spawns outside the aisle (Y=5.5), aisle entry is at Y=8.25
+        # uav-01: left aisle centre X=-3.25  uav-02: 2 m to the LEFT X=-5.25
         _aisle_entries = [
-            np.array([8.25, 3.5, 0.1], dtype=float),   # uav-01
-            np.array([8.25, 5.5, 0.1], dtype=float),   # uav-02  (2 m left of uav-01)
+            np.array([-3.25, 5.5, 0.1], dtype=float),   # uav-01
+            np.array([-5.25, 5.5, 0.1], dtype=float),   # uav-02
         ]
         drain = float(self.sim.battery_drain_rate_pps)
         for i in range(num_drones):

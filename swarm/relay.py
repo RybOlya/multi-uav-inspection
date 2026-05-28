@@ -170,8 +170,9 @@ class RelayMission:
         drone_a: str = "uav-01",
         drone_b: str = "uav-02",
         cx: float = -3.25,
-        y_start: float = -5.5,
-        y_end: float = 5.5,
+        spawn_y: float | None = None,   # physical spawn Y (outside aisle); defaults to y_start
+        y_start: float = 8.25,
+        y_end: float = 15.5,
         altitude: float = 3.0,
         threshold_pct: float | None = None,
         relay_speed_mps: float = 1.0,
@@ -185,6 +186,7 @@ class RelayMission:
         self.cx = cx
         self.y_start = y_start
         self.y_end = y_end
+        self.spawn_y = spawn_y if spawn_y is not None else y_start
         self.altitude = altitude
         self.relay_speed_mps = relay_speed_mps
         self.poll_interval_s = poll_interval_s
@@ -248,26 +250,8 @@ class RelayMission:
         deadline = time.monotonic() + aisle_len / cruise + 20.0
         handoff: WorldPose | None = None
 
-        # Max plausible battery drop per poll — 5× nominal rate guards against
-        # ghost mock_swarm processes injecting stale 0 % readings.
-        max_drop_per_poll = float(self.sim.battery_drain_rate_pps) * self.poll_interval_s * 5 + 2.0
-        prev_battery: float | None = None
-
         while time.monotonic() < deadline:
             snap = self._tracker.snapshot()
-
-            # ── anti-spike: ignore implausible sudden drop ────────────
-            if prev_battery is not None:
-                drop = prev_battery - snap.battery_pct
-                if drop > max_drop_per_poll:
-                    step(f"           [skip] battery spike "
-                         f"{prev_battery:.0f}% → {snap.battery_pct:.0f}% "
-                         f"(drop {drop:.0f}% > max {max_drop_per_poll:.0f}%) "
-                         f"— likely ghost process, ignoring")
-                    time.sleep(self.poll_interval_s)
-                    continue
-            prev_battery = snap.battery_pct
-
             step(f"           {snap}")
 
             if snap.battery_pct < self.threshold_pct:
@@ -304,13 +288,29 @@ class RelayMission:
              f"({abs(self.y_end - hp.y):.1f} m)")
         step("")
 
-        step(f"[phase 2]  {self.drone_a}  land in place  "
-             f"(X={hp.x:+.2f}  Y={hp.y:+.2f})")
-        self._pub(self.drone_a, LandCmd(cmd="land"))
+        # drone_a returns to its physical spawn (outside the aisle) then lands
+        a_spawn_x, a_spawn_y = self.cx, self.spawn_y
+        dist_return = float(np.linalg.norm(
+            np.array([hp.x - a_spawn_x, hp.y - a_spawn_y])
+        ))
+        step(f"[phase 2]  {self.drone_a}  return to spawn  "
+             f"(X={a_spawn_x:+.2f}  Y={a_spawn_y:+.2f})")
+        self._pub(self.drone_a, GoToCmd(
+            cmd="goto", x=a_spawn_x, y=a_spawn_y, z=self.altitude,
+        ))
 
+        # drone_b takes off while drone_a is flying home
         step(f"[phase 2]  {self.drone_b}  takeoff → Z={self.altitude:.2f} m")
         self._pub(self.drone_b, TakeoffCmd(cmd="takeoff", altitude_m=self.altitude))
         self._wait(self.altitude / self.relay_speed_mps + 4.0)
+
+        # by now drone_a has had time to reach spawn — land it
+        a_return_time = dist_return / cruise
+        if a_return_time > (self.altitude / self.relay_speed_mps + 4.0):
+            # still in transit — give it the remaining time
+            self._wait(a_return_time - (self.altitude / self.relay_speed_mps + 4.0))
+        step(f"[phase 2]  {self.drone_a}  land at spawn")
+        self._pub(self.drone_a, LandCmd(cmd="land"))
 
         # fly to handoff world pose (explicit X, Y, Z)
         step(f"[phase 2]  {self.drone_b}  intercept handoff world pose")
@@ -321,9 +321,9 @@ class RelayMission:
             x=hp.x, y=hp.y, z=self.altitude,
             cruise_speed_mps=self.relay_speed_mps,
         ))
-        # conservative wait: distance from drone_b spawn to handoff
-        # uav-02 spawns 2 m to the LEFT of uav-01's aisle (cx-2), same near end Y
-        b_spawn = np.array([self.cx - 2.0, self.y_start, self.altitude])
+        # conservative wait: distance from drone_b physical spawn to handoff
+        # uav-02 spawns 2 m to the LEFT of uav-01's aisle (cx-2), at spawn_y
+        b_spawn = np.array([self.cx - 2.0, self.spawn_y, self.altitude])
         dist_intercept = float(np.linalg.norm(
             np.array([hp.x, hp.y]) - b_spawn[:2]
         ))
@@ -347,7 +347,7 @@ class RelayMission:
         step("")
         step("=" * 60)
         step("Relay mission complete.")
-        step(f"  {self.drone_a} covered  Y={self.y_start:+.2f} → Y={hp.y:+.2f} m  → landed in place")
+        step(f"  {self.drone_a} covered  Y={self.y_start:+.2f} → Y={hp.y:+.2f} m  → returned to spawn & landed")
         step(f"  {self.drone_b} covered  Y={hp.y:+.2f} → Y={self.y_end:+.2f} m")
         step("=" * 60)
 

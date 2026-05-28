@@ -1,0 +1,58 @@
+@startuml fig3_1_control_stack
+skinparam backgroundColor #FFFFFF
+skinparam defaultFontName Arial
+skinparam defaultFontSize 12
+skinparam componentBorderColor #555555
+skinparam componentBackgroundColor #EEF4FF
+skinparam ArrowColor #333333
+skinparam noteBorderColor #AAAAAA
+skinparam noteBackgroundColor #FFFDE7
+
+title Ієрархія стеку керування
+
+rectangle "Оператор" as OP #D5E8D4 {
+  [missions/relay_demo.py\ntakeoff / goto / stop / land] as CMD
+}
+
+rectangle "Валідація команд" as VAL #DAE8FC {
+  [swarm/commands.py\nPydantic: TakeoffCmd, GoToCmd,\nHoverCmd, LandCmd] as PYDANTIC
+}
+
+rectangle "Планувальник траєкторій" as PLAN #DAE8FC {
+  [swarm/trajectory.py\nTrajectoryFollower\nQuinticSegment] as TRAJ
+  note right of TRAJ
+    Lynch & Park (2017) §9.2
+    p(t) = c₀ + c₁t + ... + c₅t⁵
+    T = max(T_min, ‖Δp‖ / v_cruise)
+  end note
+}
+
+rectangle "Контролер SE(3)" as SE3 #FFE6CC {
+  [CommandedNonlinearController\n(підклас Pegasus NonlinearController)] as NLC
+  rectangle "Внутрішні контури" {
+    [Outer loop: position PD+I\nF_des = −Kp·ep − Kd·ev + mg·e₃] as OUTER
+    [Inner loop: SO(3) attitude PD\nτ = −K_R·e_R − K_w·e_w] as INNER
+    [Rotor allocation\n(u₁, τ) → (ω₁…ω₄)] as ALLOC
+  }
+  note right of NLC
+    Lee et al. (2010)
+    Mellinger & Kumar (2011)
+    Pinto et al. (2021)
+  end note
+}
+
+rectangle "Фізична модель" as PHYS #F8CECC {
+  [Pegasus Multirotor\n(Isaac Sim / PhysX)] as PLANT
+}
+
+CMD -down-> PYDANTIC : JSON over MQTT v5\nQoS 1
+PYDANTIC -down-> TRAJ : GoToCmd(x, y, z)
+TRAJ -down-> NLC : p_ref, v_ref, a_ref,\nj_ref, ψ_ref, ψ̇_ref
+NLC -down-> OUTER
+OUTER -down-> INNER
+INNER -down-> ALLOC
+ALLOC -down-> PLANT : ω₁, ω₂, ω₃, ω₄
+
+PLANT -up-> NLC : p, v, R, Ω\n(state feedback)
+
+@enduml

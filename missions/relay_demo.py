@@ -8,16 +8,17 @@ All positions are explicit world (X, Y, Z) coordinates in metres.
 World frame (Isaac Sim / Full Warehouse scene)
 ----------------------------------------------
   X  — left (-) / right (+)
-  Y  — near end of warehouse (-) / far end (+)
+  Y  — toward viewer (+5.5) / into warehouse (+15.5)
   Z  — floor (0) / ceiling (~4 m)
 
-  Left aisle centre:  X = -3.25 m
-  Aisle near end:     Y = -5.50 m
-  Aisle far end:      Y = +5.50 m
-  Scan altitude:      Z =  3.00 m  (above 2 m rack tops)
+  Left aisle centre-line:  X = -3.25 m
+  Drone spawn (outside aisle): Y = +5.50 m
+  Aisle entry (scan start):    Y = +8.25 m
+  Aisle far end (scan end):    Y = +15.50 m
+  Scan altitude:               Z =  3.00 m
 
-  uav-01 spawn: (-3.25, -5.50, 0.10)  — left aisle entry
-  uav-02 spawn: (5.25, -5.50, 0.10)  — 2 m to the LEFT of uav-01 (relay standby)
+  uav-01 spawn: (-3.25, +5.50, 0.10)  — outside aisle, left column
+  uav-02 spawn: (-5.25, +5.50, 0.10)  — 2 m to the LEFT of uav-01
 
 Relay timing (with SIM_BATTERY_DRAIN_RATE_PPS=2.0):
   battery 100% → 60% threshold in ~20 s of flight
@@ -55,16 +56,17 @@ from swarm.relay import RelayMission
 # Adjust to match your exact scene if needed.
 
 CX        = -3.25   # aisle centre-line  X (metres, world frame)
-Y_NEAR    = 5.50   # spawn end  (near, left side of scene)
-Y_FAR     =  35.50   # far end    (right side — drones fly RIGHT → positive Y)
-ALTITUDE  =  3.00   # scan altitude       Z (metres, above floor)
+SPAWN_Y   =  5.50   # Y where drones physically spawn (outside aisle)
+Y_NEAR    =  8.25   # aisle entry — scan starts here
+Y_FAR     = 15.50   # aisle far end — scan ends here
+ALTITUDE  =  3.00   # scan altitude  Z (metres, above floor)
 
 DRONE_A   = "uav-01"   # primary scanner
 DRONE_B   = "uav-02"   # relay / relief drone
 
 # Battery % that triggers handoff.
 # Override via SIM_BATTERY_RELAY_THRESHOLD_PCT env var.
-THRESHOLD = float(os.environ.get("SIM_BATTERY_RELAY_THRESHOLD_PCT", "30"))
+THRESHOLD = float(os.environ.get("SIM_BATTERY_RELAY_THRESHOLD_PCT", "50"))
 
 # Speed for drone_b's intercept leg (may be faster than normal scan speed).
 RELAY_SPEED = 1.0   # m/s
@@ -84,6 +86,7 @@ def main() -> int:
         drone_a=DRONE_A,
         drone_b=DRONE_B,
         cx=CX,
+        spawn_y=SPAWN_Y,
         y_start=Y_NEAR,
         y_end=Y_FAR,
         altitude=ALTITUDE,
